@@ -1,13 +1,22 @@
-import {ScrollView, StyleSheet, Image, TouchableOpacity, useWindowDimensions} from 'react-native';
+import {
+    ScrollView,
+    StyleSheet,
+    Image,
+    TouchableOpacity,
+    useWindowDimensions, PanResponderGestureState
+} from 'react-native';
 import {View} from '../components/Themed';
 import {RootTabScreenProps} from '../types';
-import {useState} from "react";
+import {createRef, useState} from "react";
 import * as ImagePicker from "expo-image-picker";
 import {MaterialIcons} from "@expo/vector-icons";
+import ReactNativeZoomableView from '@dudigital/react-native-zoomable-view/src/ReactNativeZoomableView';
+
 
 export default function TabOneScreen({navigation}: RootTabScreenProps<'TabOne'>) {
     const {height, width} = useWindowDimensions();
     const [image, setImage] = useState<string | null>(null);
+    const [openedImage, setOpenedImage] = useState(false);
     const [temp, setTemp] = useState<number>(0);
 
     const pickImage = async () => {
@@ -17,8 +26,9 @@ export default function TabOneScreen({navigation}: RootTabScreenProps<'TabOne'>)
         });
 
         if (!result.cancelled) {
-            setTemp(result.height / result.width)
+            setTemp(result.height / result.width);
             setImage(result.uri);
+            setOpenedImage(false);
         }
     };
 
@@ -33,27 +43,66 @@ export default function TabOneScreen({navigation}: RootTabScreenProps<'TabOne'>)
         const result = await ImagePicker.launchCameraAsync();
 
         if (!result.cancelled) {
-            setTemp(result.height / result.width)
+            setTemp(result.height / result.width);
             setImage(result.uri);
+            setOpenedImage(false);
+        }
+    }
+
+    const zoomableViewRef = createRef<ReactNativeZoomableView>();
+
+    const onCloseOpenedImage = (event: Event, gestureState: PanResponderGestureState, zoomableViewEventObject: any) => {
+        if (zoomableViewEventObject.zoomLevel < 1) {
+            zoomableViewRef.current!.zoomTo(1);
+            setOpenedImage(false);
         }
     }
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
-            {image && <Image source={{uri: image}} style={{width: width, height: width * temp}}/>}
-            <View style={styles.buttonWrapper}>
-                <TouchableOpacity style={styles.button} onPress={pickImage}>
-                    <MaterialIcons name="add-photo-alternate" size={24} color="white"/>
+        <View style={styles.pageContainer}>
+            {image && openedImage &&
+                <View style={styles.zoomWrapper}>
+                    <ReactNativeZoomableView
+                        minZoom={0.9}
+                        zoomStep={0.25}
+                        bindToBorders={true}
+                        onZoomEnd={onCloseOpenedImage}
+                        ref={zoomableViewRef}
+                    >
+                        <Image
+                            style={{width: width, height: width * temp}}
+                            source={{uri: image}}
+                        />
+                    </ReactNativeZoomableView>
+                </View>
+            }
+            {!openedImage && <ScrollView contentContainerStyle={styles.container}>
+                {image && !openedImage && <TouchableOpacity activeOpacity={1} onPress={() => setOpenedImage(true)}>
+                    <Image source={{uri: image}} style={{width: width, height: width * temp}}/>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.button} onPress={openCamera}>
-                    <MaterialIcons name="add-a-photo" size={24} color="white"/>
-                </TouchableOpacity>
-            </View>
-        </ScrollView>
+                }
+                <View style={styles.buttonWrapper}>
+                    <TouchableOpacity style={styles.button} onPress={pickImage}>
+                        <MaterialIcons name="add-photo-alternate" size={24} color="white"/>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.button} onPress={openCamera}>
+                        <MaterialIcons name="add-a-photo" size={24} color="white"/>
+                    </TouchableOpacity>
+                </View>
+            </ScrollView>}
+        </View>
+
     );
 }
 
 const styles = StyleSheet.create({
+    pageContainer: {
+        flex: 1,
+    },
+    zoomWrapper: {
+        flex: 1,
+        overflow: 'hidden',
+    },
     container: {
         display: "flex",
         flexDirection: "column",
@@ -71,6 +120,10 @@ const styles = StyleSheet.create({
         padding: 12,
         backgroundColor: "#00b6ea",
         borderRadius: 5,
+    },
+    image: {
+        flex: 1,
+        width: '100%',
     },
     buttonText: {
         fontSize: 20,
