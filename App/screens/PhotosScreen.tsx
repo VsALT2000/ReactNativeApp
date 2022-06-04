@@ -4,7 +4,7 @@ import EditScreenInfo from '../components/EditScreenInfo';
 import { Text, View } from '../components/Themed';
 import {RootTabScreenProps} from "../types";
 
-export default function TabTwoScreen({ navigation }: RootTabScreenProps<'TabTwo'>) {
+export default function PhotosScreen({ navigation }: RootTabScreenProps<'Profile'>) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Прошмандовки РТФ</Text>

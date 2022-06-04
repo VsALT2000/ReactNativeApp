@@ -11,39 +11,35 @@ import {createRef, useState} from "react";
 import * as ImagePicker from "expo-image-picker";
 import {MaterialIcons} from "@expo/vector-icons";
 import ReactNativeZoomableView from '@dudigital/react-native-zoomable-view/src/ReactNativeZoomableView';
+import * as Haptics from 'expo-haptics';
 
-
-export default function TabOneScreen({navigation}: RootTabScreenProps<'TabOne'>) {
+export default function PhotoScreen({navigation}: RootTabScreenProps<'Photo'>) {
     const {height, width} = useWindowDimensions();
     const [image, setImage] = useState<string | null>(null);
     const [openedImage, setOpenedImage] = useState(false);
-    const [temp, setTemp] = useState<number>(0);
+    const [ratio, setRatio] = useState<number>(0);
 
     const pickImage = async () => {
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.All,
             quality: 1,
         });
-
-        if (!result.cancelled) {
-            setTemp(result.height / result.width);
-            setImage(result.uri);
-            setOpenedImage(false);
-        }
+        loadImage(result);
     };
 
     const openCamera = async () => {
         const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-
         if (!permissionResult.granted) {
             alert("You've refused to allow this app to access your camera!");
             return;
         }
-
         const result = await ImagePicker.launchCameraAsync();
+        loadImage(result);
+    }
 
+    const loadImage = (result: ImagePicker.ImagePickerResult) => {
         if (!result.cancelled) {
-            setTemp(result.height / result.width);
+            setRatio(result.height / result.width);
             setImage(result.uri);
             setOpenedImage(false);
         }
@@ -51,34 +47,41 @@ export default function TabOneScreen({navigation}: RootTabScreenProps<'TabOne'>)
 
     const zoomableViewRef = createRef<ReactNativeZoomableView>();
 
-    const onCloseOpenedImage = (event: Event, gestureState: PanResponderGestureState, zoomableViewEventObject: any) => {
+    const onCloseImage = (event: Event, gestureState: PanResponderGestureState, zoomableViewEventObject: any) => {
         if (zoomableViewEventObject.zoomLevel < 1) {
             zoomableViewRef.current!.zoomTo(1);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             setOpenedImage(false);
         }
     }
 
+    const onOpenImage = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        setOpenedImage(true);
+    }
+
     return (
-        <View style={styles.pageContainer}>
+        <View lightColor="#eee" darkColor="#1b1b1b" style={styles.pageContainer}>
             {image && openedImage &&
-                <View style={styles.zoomWrapper}>
+                <View lightColor="#eee" darkColor="#1b1b1b" style={styles.zoomWrapper}>
                     <ReactNativeZoomableView
                         minZoom={0.9}
+                        maxZoom={2}
                         zoomStep={0.25}
                         bindToBorders={true}
-                        onZoomEnd={onCloseOpenedImage}
+                        onZoomEnd={onCloseImage}
                         ref={zoomableViewRef}
                     >
                         <Image
-                            style={{width: width, height: width * temp}}
+                            style={{width: width, height: width * ratio}}
                             source={{uri: image}}
                         />
                     </ReactNativeZoomableView>
                 </View>
             }
             {!openedImage && <ScrollView contentContainerStyle={styles.container}>
-                {image && !openedImage && <TouchableOpacity activeOpacity={1} onPress={() => setOpenedImage(true)}>
-                    <Image source={{uri: image}} style={{width: width, height: width * temp}}/>
+                {image && !openedImage && <TouchableOpacity activeOpacity={1} onPress={onOpenImage}>
+                    <Image source={{uri: image}} style={{width: width, height: width * ratio}}/>
                 </TouchableOpacity>
                 }
                 <View style={styles.buttonWrapper}>
@@ -91,7 +94,6 @@ export default function TabOneScreen({navigation}: RootTabScreenProps<'TabOne'>)
                 </View>
             </ScrollView>}
         </View>
-
     );
 }
 
