@@ -109,6 +109,7 @@ const styles = StyleSheet.create({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
+        backgroundColor: "transparent",
     },
     buttonWrapper: {
         display: "flex",
