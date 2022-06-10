@@ -1,23 +1,15 @@
-import {
-    ScrollView,
-    StyleSheet,
-    Image,
-    TouchableOpacity,
-    useWindowDimensions, PanResponderGestureState
-} from 'react-native';
+import {Image, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions} from 'react-native';
 import {View} from '../components/Themed';
-import {RootTabScreenProps} from '../types';
-import {createRef, useState} from "react";
+import {PhotoType, RootTabScreenProps} from '../types';
+import {useState} from "react";
 import * as ImagePicker from "expo-image-picker";
 import {MaterialIcons} from "@expo/vector-icons";
-import ReactNativeZoomableView from '@dudigital/react-native-zoomable-view/src/ReactNativeZoomableView';
 import * as Haptics from 'expo-haptics';
+import * as url from "url";
 
 export default function PhotoScreen({navigation}: RootTabScreenProps<'Photo'>) {
-    const {height, width} = useWindowDimensions();
-    const [image, setImage] = useState<string | null>(null);
-    const [openedImage, setOpenedImage] = useState(false);
-    const [ratio, setRatio] = useState<number>(0);
+    const {width} = useWindowDimensions();
+    const [image, setImage] = useState<PhotoType | null>(null);
 
     const pickImage = async () => {
         let result = await ImagePicker.launchImageLibraryAsync({
@@ -39,49 +31,21 @@ export default function PhotoScreen({navigation}: RootTabScreenProps<'Photo'>) {
 
     const loadImage = (result: ImagePicker.ImagePickerResult) => {
         if (!result.cancelled) {
-            setRatio(result.height / result.width);
-            setImage(result.uri);
-            setOpenedImage(false);
+            setImage({url: result.uri, height: result.height, width: result.width, id: 0});
         }
     }
 
-    const zoomableViewRef = createRef<ReactNativeZoomableView>();
-
-    const onCloseImage = (event: Event, gestureState: PanResponderGestureState, zoomableViewEventObject: any) => {
-        if (zoomableViewEventObject.zoomLevel < 1) {
-            zoomableViewRef.current!.zoomTo(1);
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setOpenedImage(false);
-        }
-    }
-
-    const onOpenImage = () => {
+    const onOpenImage = (image: PhotoType) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        setOpenedImage(true);
+        // @ts-ignore
+        navigation.navigate('Zoom', {openedImage: image});
     }
 
     return (
         <View lightColor="#eee" darkColor="#1b1b1b" style={styles.pageContainer}>
-            {image && openedImage &&
-                <View lightColor="#eee" darkColor="#1b1b1b" style={styles.zoomWrapper}>
-                    <ReactNativeZoomableView
-                        minZoom={0.9}
-                        maxZoom={2}
-                        zoomStep={0.25}
-                        bindToBorders={true}
-                        onZoomEnd={onCloseImage}
-                        ref={zoomableViewRef}
-                    >
-                        <Image
-                            style={{width: width, height: width * ratio}}
-                            source={{uri: image}}
-                        />
-                    </ReactNativeZoomableView>
-                </View>
-            }
-            {!openedImage && <ScrollView contentContainerStyle={styles.container}>
-                {image && !openedImage && <TouchableOpacity activeOpacity={1} onPress={onOpenImage}>
-                    <Image source={{uri: image}} style={{width: width, height: width * ratio}}/>
+            <ScrollView contentContainerStyle={styles.container}>
+                {image && <TouchableOpacity activeOpacity={1} onPress={() => onOpenImage(image)}>
+                    <Image source={{uri: image.url}} style={{width: width, height: width * image.height / image.width}}/>
                 </TouchableOpacity>
                 }
                 <View style={styles.buttonWrapper}>
@@ -92,7 +56,7 @@ export default function PhotoScreen({navigation}: RootTabScreenProps<'Photo'>) {
                         <MaterialIcons name="add-a-photo" size={24} color="white"/>
                     </TouchableOpacity>
                 </View>
-            </ScrollView>}
+            </ScrollView>
         </View>
     );
 }

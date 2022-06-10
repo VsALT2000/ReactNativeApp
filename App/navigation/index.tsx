@@ -6,7 +6,7 @@
 import {FontAwesome, FontAwesome5} from '@expo/vector-icons';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {NavigationContainer, DefaultTheme, DarkTheme} from '@react-navigation/native';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import {createStackNavigator, CardStyleInterpolators} from '@react-navigation/stack';
 import * as React from 'react';
 import {ColorSchemeName, Pressable} from 'react-native';
 
@@ -19,6 +19,7 @@ import PhotosScreen from '../screens/PhotosScreen';
 import {RootStackParamList, RootTabParamList, RootTabScreenProps} from '../types';
 import LinkingConfiguration from './LinkingConfiguration';
 import ProfileScreen from "../screens/ProfileScreen";
+import ZoomImage from "../screens/ZoomImage";
 
 export default function Navigation({colorScheme}: { colorScheme: ColorSchemeName }) {
     return (
@@ -34,12 +35,17 @@ export default function Navigation({colorScheme}: { colorScheme: ColorSchemeName
  * A root stack navigator is often used for displaying modals on top of all other content.
  * https://reactnavigation.org/docs/modal
  */
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const Stack = createStackNavigator<RootStackParamList>();
 
 function RootNavigator() {
     return (
         <Stack.Navigator>
             <Stack.Screen name="Root" component={BottomTabNavigator} options={{headerShown: false}}/>
+            <Stack.Screen name="Zoom" component={ZoomImage} options={{
+                headerShown: false,
+                gestureDirection: "vertical",
+                cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS
+            }}/>
             <Stack.Screen name="NotFound" component={NotFoundScreen} options={{title: 'Oops!'}}/>
             <Stack.Group screenOptions={{presentation: "modal"}}>
                 <Stack.Screen name="Modal" component={ModalScreen}/>
@@ -59,7 +65,7 @@ function BottomTabNavigator() {
 
     return (
         <BottomTab.Navigator
-            initialRouteName="Profile"
+            initialRouteName="Photos"
             screenOptions={{
                 tabBarActiveTintColor: Colors[colorScheme].tint,
             }}>
